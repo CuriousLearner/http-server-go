@@ -8,6 +8,15 @@ import (
 	"strings"
 )
 
+func generateHeadersMap(request []string) map[string]string {
+	headersMap := make(map[string]string)
+	for i := 1; i < len(request)-2; i++ {
+		header := strings.Split(request[i], ": ")
+		headersMap[header[0]] = header[1]
+	}
+	return headersMap
+}
+
 func handleConnection(conn net.Conn) {
 
 	buffer := make([]byte, 1024)
@@ -17,11 +26,7 @@ func handleConnection(conn net.Conn) {
 	}
 
 	request := strings.Split(string(buffer), "\r\n")
-	headersMap := make(map[string]string)
-	for i := 1; i < len(request)-2; i++ {
-		header := strings.Split(request[i], ": ")
-		headersMap[header[0]] = header[1]
-	}
+	headersMap := generateHeadersMap(request)
 	requestStartLine := strings.Split(request[0], " ")
 	uriPath := requestStartLine[1]
 
@@ -29,26 +34,22 @@ func handleConnection(conn net.Conn) {
 		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
-			os.Exit(1)
 		}
 	} else if strings.Contains(uriPath, "/echo/") {
 		content := strings.Split(uriPath, "/echo/")[1]
 		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" + "Content-Length: " + strconv.Itoa(len(content)) + "\r\n\r\n" + content))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
-			os.Exit(1)
 		}
 	} else if strings.Contains(uriPath, "/user-agent") {
 		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" + "Content-Length: " + strconv.Itoa(len(headersMap["User-Agent"])) + "\r\n\r\n" + headersMap["User-Agent"]))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
-			os.Exit(1)
 		}
 	} else {
 		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
-			os.Exit(1)
 		}
 	}
 }
@@ -67,7 +68,6 @@ func main() {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
-			os.Exit(1)
 		}
 
 		go handleConnection(conn)
