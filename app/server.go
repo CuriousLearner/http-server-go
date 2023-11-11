@@ -12,6 +12,7 @@ func generateHeadersMap(request []string) map[string]string {
 	headersMap := make(map[string]string)
 	for i := 1; i < len(request)-2; i++ {
 		header := strings.Split(request[i], ": ")
+		fmt.Println("header: ", header)
 		headersMap[header[0]] = header[1]
 	}
 	return headersMap
