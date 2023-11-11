@@ -47,13 +47,13 @@ func main() {
 		}
 	} else if strings.Contains(uriPath, "/echo/") {
 		content := strings.Split(uriPath, "/echo/")[1]
-		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" + "Content-Length: " + strconv.Itoa(len(content)) + "\r\n\r\n" + content))
+		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" + "Content-Length: " + strconv.Itoa(len(content)) + "\r\n" + content + "\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
 			os.Exit(1)
 		}
 	} else if strings.Contains(uriPath, "/user-agent") {
-		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" + "Content-Length: " + strconv.Itoa(len(uriPath)) + "\r\n\r\n" + headersMap["User-Agent"]))
+		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n" + "Content-Length: " + strconv.Itoa(len(headersMap["User-Agent"])) + "\r\n" + headersMap["User-Agent"] + "\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
 			os.Exit(1)
