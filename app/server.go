@@ -26,7 +26,7 @@ func handleConnection(conn net.Conn) {
 	uriPath := requestStartLine[1]
 
 	if uriPath == "/" {
-		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"))
+		_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
 			os.Exit(1)
