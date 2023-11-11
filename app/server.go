@@ -27,31 +27,27 @@ func generateResponse(responseType string, content string, contentType string) s
 	return fmt.Sprintf(response, responseType, contentType, len(content), content)
 }
 
-func route(conn net.Conn, httpMethod string, uriPath string, headersMap map[string]string, requestBody string) {
+func route(conn net.Conn, request Request) {
 	var err error
 	var response, content, responseType string
-	OkResponse := "200 OK"
-	NotFoundResponseType := "404 Not Found"
-	CreatedresponseType := "201 Created"
-	BadRequestResponseType := "400 Bad Request"
-	contentType := "text/plain"
+	contentType := TEXT_PLAIN
 
 	switch {
-	case uriPath == "/":
+	case request.uriPath == "/":
 		responseType = OkResponse
-	case strings.Contains(uriPath, "/echo/"):
+	case strings.Contains(request.uriPath, "/echo/"):
 		responseType = OkResponse
-		content = strings.Split(uriPath, "/echo/")[1]
-	case strings.Contains(uriPath, "/user-agent"):
+		content = strings.Split(request.uriPath, "/echo/")[1]
+	case strings.Contains(request.uriPath, "/user-agent"):
 		responseType = OkResponse
-		content = headersMap["User-Agent"]
-	case strings.Contains(uriPath, "/files/"):
+		content = request.headersMap["User-Agent"]
+	case strings.Contains(request.uriPath, "/files/"):
 		content = ""
-		filename := strings.TrimPrefix(uriPath, "/files/")
+		filename := strings.TrimPrefix(request.uriPath, "/files/")
 		filePath := filepath.Join(directory, filename)
-		if httpMethod == "POST" {
+		if request.httpMethod == "POST" {
 			responseType = CreatedresponseType
-			err := os.WriteFile(filePath, []byte(requestBody), 0644)
+			err := os.WriteFile(filePath, []byte(request.requestBody), 0644)
 			if err != nil {
 				fmt.Println("Error writing file:", err)
 				responseType = BadRequestResponseType
@@ -66,7 +62,7 @@ func route(conn net.Conn, httpMethod string, uriPath string, headersMap map[stri
 			}
 			responseType = OkResponse
 			content = string(data)
-			contentType = "application/octet-stream"
+			contentType = OCTET_STREAM
 		}
 	default:
 		responseType = NotFoundResponseType
@@ -87,14 +83,40 @@ func handleConnection(conn net.Conn) {
 		fmt.Println("Error reading: ", err.Error())
 	}
 
-	request := strings.Split(string(buffer), "\r\n")
-	headersMap := generateHeadersMap(request)
-	requestStartLine := strings.Split(request[0], " ")
+	request := parseRequest(buffer)
+
+	route(conn, request)
+}
+
+func parseRequest(buffer []byte) (request Request) {
+	fmt.Println("Request received:\n", string(buffer))
+	requestString := strings.Split(string(buffer), "\r\n")
+	headersMap := generateHeadersMap(requestString)
+	requestStartLine := strings.Split(requestString[0], " ")
 	httpMethod := requestStartLine[0]
 	uriPath := requestStartLine[1]
-	requestBody := strings.ReplaceAll(request[len(request)-1], "\x00", "")
-	route(conn, httpMethod, uriPath, headersMap, requestBody)
+	requestBody := strings.ReplaceAll(requestString[len(requestString)-1], "\x00", "")
+	return Request{httpMethod, uriPath, headersMap, requestBody}
 }
+
+type Request struct {
+	httpMethod  string
+	uriPath     string
+	headersMap  map[string]string
+	requestBody string
+}
+
+const (
+	OkResponse             = "200 OK"
+	NotFoundResponseType   = "404 Not Found"
+	CreatedresponseType    = "201 Created"
+	BadRequestResponseType = "400 Bad Request"
+)
+
+const (
+	TEXT_PLAIN   = "text/plain"
+	OCTET_STREAM = "application/octet-stream"
+)
 
 var directory string
 
