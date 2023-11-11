@@ -27,11 +27,13 @@ func generateResponse(responseType string, content string, contentType string) s
 	return fmt.Sprintf(response, responseType, contentType, len(content), content)
 }
 
-func route(conn net.Conn, uriPath string, headersMap map[string]string) {
+func route(conn net.Conn, httpMethod string, uriPath string, headersMap map[string]string, requestBody string) {
 	var err error
 	var response, content, responseType string
 	OkResponse := "200 OK"
 	NotFoundResponseType := "404 Not Found"
+	CreatedresponseType := "201 Created"
+	BadRequestResponseType := "400 Bad Request"
 	contentType := "text/plain"
 
 	switch {
@@ -44,18 +46,28 @@ func route(conn net.Conn, uriPath string, headersMap map[string]string) {
 		responseType = OkResponse
 		content = headersMap["User-Agent"]
 	case strings.Contains(uriPath, "/files/"):
-		responseType = NotFoundResponseType
 		content = ""
 		filename := strings.TrimPrefix(uriPath, "/files/")
 		filePath := filepath.Join(directory, filename)
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			fmt.Println("Error reading file:", err) //print the error if comes while reading file
-			break
+		if httpMethod == "POST" {
+			responseType = CreatedresponseType
+			err := os.WriteFile(filePath, []byte(requestBody), 0644)
+			if err != nil {
+				fmt.Println("Error writing file:", err)
+				responseType = BadRequestResponseType
+				break
+			}
+		} else {
+			responseType = NotFoundResponseType
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				fmt.Println("Error reading file:", err)
+				break
+			}
+			responseType = OkResponse
+			content = string(data)
+			contentType = "application/octet-stream"
 		}
-		responseType = OkResponse
-		content = string(data)
-		contentType = "application/octet-stream"
 	default:
 		responseType = NotFoundResponseType
 		content = ""
@@ -78,9 +90,10 @@ func handleConnection(conn net.Conn) {
 	request := strings.Split(string(buffer), "\r\n")
 	headersMap := generateHeadersMap(request)
 	requestStartLine := strings.Split(request[0], " ")
+	httpMethod := requestStartLine[0]
 	uriPath := requestStartLine[1]
-
-	route(conn, uriPath, headersMap)
+	requestBody := strings.ReplaceAll(request[len(request)-1], "\x00", "")
+	route(conn, httpMethod, uriPath, headersMap, requestBody)
 }
 
 var directory string
