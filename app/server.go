@@ -45,7 +45,7 @@ func handleConnection(conn net.Conn) {
 			os.Exit(1)
 		}
 	} else {
-		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n"))
+		_, err = conn.Write([]byte("HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: 0\r\n\r\n"))
 		if err != nil {
 			fmt.Println("Error writing: ", err.Error())
 			os.Exit(1)
